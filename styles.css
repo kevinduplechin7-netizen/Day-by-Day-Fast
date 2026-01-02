@@ -55,3 +55,82 @@ max-width:520px;background:#fff;border-radius:24px;padding:16px;box-shadow:var(-
 .toast{position:fixed;left:50%;transform:translateX(-50%);top:16px;background:rgba(15,42,36,.9);
 color:#fff;padding:10px 14px;border-radius:14px}
 .tips{padding-left:18px}
+
+
+/* Stopwatch feel */
+.timer{
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .6px;
+}
+
+/* Theme chips */
+.themeGrid{
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  gap:10px;
+  margin-top:10px;
+}
+.themeChip{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border:1px solid var(--hair);
+  border-radius:14px;
+  padding:12px;
+  background:#f7f7f7;
+  font-weight:750;
+  text-align:left;
+}
+.themeChip.isOn{
+  background:#fff;
+  box-shadow: var(--shadow);
+}
+.swatch{
+  width:14px;
+  height:14px;
+  border-radius:999px;
+  border:1px solid rgba(0,0,0,.10);
+}
+.swEvergreen{ background: linear-gradient(180deg, #0f2a24, #20483f); }
+.swOcean{ background: linear-gradient(180deg, #0b2a52, #1a5f8a); }
+.swIndigo{ background: linear-gradient(180deg, #2a1f5a, #4c3bb4); }
+.swAmber{ background: linear-gradient(180deg, #4a2a0b, #b45f1a); }
+
+/* Theme palettes (override tokens) */
+:root{ --themeName: evergreen; }
+
+html[data-theme="evergreen"]{
+  --accent:#0f2a24;
+  --accent2:#20483f;
+  --bgA:#f6f3ee;
+  --bgB:#eef4f1;
+}
+
+html[data-theme="ocean"]{
+  --accent:#0b2a52;
+  --accent2:#1a5f8a;
+  --bgA:#eef3fb;
+  --bgB:#e9f4fb;
+}
+
+html[data-theme="indigo"]{
+  --accent:#2a1f5a;
+  --accent2:#4c3bb4;
+  --bgA:#f2f1fb;
+  --bgB:#ecebfa;
+}
+
+html[data-theme="amber"]{
+  --accent:#4a2a0b;
+  --accent2:#b45f1a;
+  --bgA:#fbf4ea;
+  --bgB:#f7efe1;
+}
+
+/* Ensure brand dot + primary button follow theme */
+.dot{
+  background:linear-gradient(180deg,var(--accent),var(--accent2));
+}
+.primary{
+  background:linear-gradient(180deg,var(--accent), #0b1f1a);
+}

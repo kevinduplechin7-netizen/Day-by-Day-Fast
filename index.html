@@ -50,6 +50,7 @@
         <button id="btnTips" class="rowBtn">Want to quit?</button>
         <button id="btnStats" class="rowBtn">Stats</button>
         <button id="btnBackup" class="rowBtn">Backup</button>
+        <button id="btnTheme" class="rowBtn">Theme</button>
         <button id="btnDisclaimer" class="rowBtn muted">Medical disclaimer</button>
       </div>
     </section>
@@ -158,6 +159,35 @@
         consult a qualified professional before fasting—especially for extended periods.
       </div>
     </section>
+
+    
+    <!-- THEME -->
+    <section id="modalTheme" class="modal" hidden>
+      <div class="modalTop">
+        <div class="modalTitle">Theme</div>
+        <button id="btnCloseTheme" class="x">✕</button>
+      </div>
+      <div class="note">Choose a palette. You can switch anytime.</div>
+      <div class="themeGrid" id="themeGrid">
+        <button class="themeChip" data-theme="evergreen">
+          <span class="swatch swEvergreen"></span>
+          Evergreen
+        </button>
+        <button class="themeChip" data-theme="ocean">
+          <span class="swatch swOcean"></span>
+          Ocean
+        </button>
+        <button class="themeChip" data-theme="indigo">
+          <span class="swatch swIndigo"></span>
+          Indigo
+        </button>
+        <button class="themeChip" data-theme="amber">
+          <span class="swatch swAmber"></span>
+          Amber
+        </button>
+      </div>
+    </section>
+
 
     <div id="toast" class="toast" hidden></div>
     <script src="/app.js"></script>

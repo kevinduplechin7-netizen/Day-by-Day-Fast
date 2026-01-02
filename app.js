@@ -9,6 +9,7 @@ const goalHoursInput=el('goalHoursInput'),progressFill=el('progressFill'),progre
 goalDone=el('goalDone'),goalTotal=el('goalTotal'),goalRemain=el('goalRemain');
 const rangeTotal=el('rangeTotal'),rangeAvg=el('rangeAvg'),rangeMax=el('rangeMax'),rangeCount=el('rangeCount'),logList=el('logList');
 
+const KEY_THEME='fb_theme';
 const tips=[
 "Drink water and pause for ten minutes.",
 "Add a pinch of salt to water if appropriate.",
@@ -62,19 +63,49 @@ const tips=[
 
 function show(m){toast.textContent=m;toast.hidden=false;setTimeout(()=>toast.hidden=true,2200)}
 function openModal(m){modalBackdrop.hidden=false;m.hidden=false}
-function closeAll(){modalBackdrop.hidden=true;[modalMore,modalAdd,modalGoal,modalTips,modalStats,modalBackup,modalInfo].forEach(x=>x.hidden=true)}
+function closeAll(){modalBackdrop.hidden=true;[modalMore,modalAdd,modalGoal,modalTips,modalStats,modalBackup,modalTheme,modalInfo].forEach(x=>x.hidden=true)}
 
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}}
 function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
 
-function fmt(ms){const m=Math.max(0,Math.floor(ms/60000));const h=Math.floor(m/60),mi=m%60;
-if(!h&&!mi)return 'zero hours'; if(!mi)return h+' hours'; if(!h)return mi+' minutes'; return h+' hours, '+mi+' minutes'}
+function fmt(ms){
+  const m=Math.max(0,Math.floor(ms/60000));
+  const h=Math.floor(m/60),mi=m%60;
+  if(!h&&!mi)return 'zero hours';
+  if(!mi)return h+' hours';
+  if(!h)return mi+' minutes';
+  return h+' hours, '+mi+' minutes';
+}
+
+function fmtStopwatch(ms){
+  const totalMinutes=Math.max(0,Math.floor(ms/60000));
+  const days=Math.floor(totalMinutes/1440);
+  const remMin=totalMinutes%1440;
+  const hours=Math.floor(remMin/60);
+  const minutes=remMin%60;
+
+  const hh=String(hours).padStart(2,'0');
+  const mm=String(minutes).padStart(2,'0');
+
+  if(days>0){
+    const dd=String(days).padStart(2,'0');
+    return dd+'d '+hh+'h '+mm+'m';
+  }
+  return hh+'h '+mm+'m';
+}
 
 function render(){
+ const theme=load(KEY_THEME,'evergreen');
+ if(document.documentElement.dataset.theme!==theme){
+  document.documentElement.dataset.theme=theme;
+  const chips=document.querySelectorAll('.themeChip');
+  chips.forEach(c=>c.classList.toggle('isOn', c.dataset.theme===theme));
+ }
+
  const active=load(KEY_ACTIVE,null); const sess=load(KEY_SESS,[]);
  stateLabel.textContent=active?'Fasting':'Not fasting';
  btnMain.textContent=active?'End fast':'Start fast';
- timerLabel.textContent=active?fmt(Date.now()-active):'zero hours';
+ timerLabel.textContent=active?fmtStopwatch(Date.now()-active):'00h 00m';
  const weekStart=(()=>{const d=new Date();const day=d.getDay()||7;d.setDate(d.getDate()-day+1);d.setHours(0,0,0,0);return d.getTime()})();
  const weekMs=sess.filter(s=>s.e>=weekStart).reduce((a,s)=>a+s.d,0);
  weekTotal.textContent=fmt(weekMs);
@@ -103,6 +134,28 @@ el('btnTips').onclick=()=>{const list=el('tipsList'); list.innerHTML=''; tips.fo
 el('btnCloseTips').onclick=closeAll;
 el('btnStats').onclick=()=>openModal(modalStats); el('btnCloseStats').onclick=closeAll;
 el('btnBackup').onclick=()=>openModal(modalBackup); el('btnCloseBackup').onclick=closeAll;
+el('btnTheme').onclick=()=>{openModal(modalTheme)};
+el('btnCloseTheme').onclick=closeAll;
+
+function applyTheme(name){
+  const t = name || 'evergreen';
+  document.documentElement.dataset.theme = t;
+  save(KEY_THEME, t);
+  // highlight selected chip if present
+  const chips = document.querySelectorAll('.themeChip');
+  chips.forEach(c=>c.classList.toggle('isOn', c.dataset.theme===t));
+}
+
+document.addEventListener('click', (e)=>{
+  const btn = e.target && e.target.closest && e.target.closest('.themeChip');
+  if(!btn) return;
+  applyTheme(btn.dataset.theme);
+  show('Theme updated.');
+  closeAll();
+});
+
 el('btnDisclaimer').onclick=()=>openModal(modalInfo); el('btnCloseInfo').onclick=closeAll;
 
 render(); setInterval(render,1000);
+
+modalBackdrop.onclick=closeAll;
