@@ -1,567 +1,108 @@
-const KEY_ACTIVE = "fastbutton_active_start_utc";
-const KEY_SESSIONS = "fastbutton_sessions_v1";
-const KEY_GOAL_HOURS = "fastbutton_goal_hours_v1";
+const KEY_ACTIVE='fb_active';const KEY_SESS='fb_sessions';const KEY_GOAL='fb_goal';
+const el=id=>document.getElementById(id);
+const stateLabel=el('stateLabel'),timerLabel=el('timerLabel'),weekTotal=el('weekTotal'),whats=el('whatsHappening');
+const btnMain=el('btnMain'),toast=el('toast');
+const modalBackdrop=el('modalBackdrop'),modalMore=el('modalMore'),modalAdd=el('modalAdd'),modalGoal=el('modalGoal'),
+modalTips=el('modalTips'),modalStats=el('modalStats'),modalBackup=el('modalBackup'),modalInfo=el('modalInfo');
+const startInput=el('startInput'),endInput=el('endInput'),manualDuration=el('manualDuration'),overlapWarning=el('overlapWarning');
+const goalHoursInput=el('goalHoursInput'),progressFill=el('progressFill'),progressLabel=el('progressLabel'),
+goalDone=el('goalDone'),goalTotal=el('goalTotal'),goalRemain=el('goalRemain');
+const rangeTotal=el('rangeTotal'),rangeAvg=el('rangeAvg'),rangeMax=el('rangeMax'),rangeCount=el('rangeCount'),logList=el('logList');
 
-let deferredPrompt = null;
+const tips=[
+"Drink water and pause for ten minutes.",
+"Add a pinch of salt to water if appropriate.",
+"Warm tea can take the edge off hunger.",
+"Black coffee can help some people.",
+"Remind yourself hunger often comes in waves.",
+"Light movement can reduce restlessness.",
+"Brush your teeth; it can reset cravings.",
+"Focus on a task for fifteen minutes.",
+"Electrolytes may help during longer fasts.",
+"Sleep often makes fasting easier.",
+"Stress can amplify hunger signals.",
+"Deep breathing can calm the nervous system.",
+"A short walk can help pass a hunger wave.",
+"Cold or warm showers can change sensations.",
+"Carbonated water can feel more filling.",
+"Separate habit-hunger from need-hunger.",
+"Check in: are you thirsty or tired?",
+"Keep occupied during usual meal times.",
+"Remember why you chose to fast today.",
+"Short fasts still count.",
+"You can end now and start again later.",
+"Consistency matters more than perfection.",
+"Protein sparing often improves with time.",
+"Fat adaptation can take patience.",
+"Hunger hormones fluctuate.",
+"Routine cues can trigger appetite.",
+"Salt, potassium, and magnesium matter.",
+"Extended fasts are often supervised.",
+"Non-exercise activity can help.",
+"A warm mug in your hands can be grounding.",
+"Mindful breathing for one minute.",
+"Read or listen to something engaging.",
+"Dim lighting can reduce food cues.",
+"Change rooms to break association.",
+"Hydration first, decision second.",
+"Write down how you feel, briefly.",
+"Set a small check-in time.",
+"Delay does not equal denial.",
+"Ending a fast is not failure.",
+"Restarting is always allowed.",
+"Your body is adaptable.",
+"Time is cumulative.",
+"Today does not define the week.",
+"Weeks do not define the year.",
+"Long-term habits beat single days.",
+"Neutral observation reduces stress.",
+"Calm decisions tend to be better.",
+"Choose the gentlest next step."
+];
 
-const el = (id) => document.getElementById(id);
+function show(m){toast.textContent=m;toast.hidden=false;setTimeout(()=>toast.hidden=true,2200)}
+function openModal(m){modalBackdrop.hidden=false;m.hidden=false}
+function closeAll(){modalBackdrop.hidden=true;[modalMore,modalAdd,modalGoal,modalTips,modalStats,modalBackup,modalInfo].forEach(x=>x.hidden=true)}
 
-const btnMain = el("btnMain");
-const timerLabel = el("timerLabel");
-const stateLabel = el("stateLabel");
-const weekTotal = el("weekTotal");
-const monthTotal = el("monthTotal");
+function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
 
-const goalDone = el("goalDone");
-const goalTotal = el("goalTotal");
-const goalRemain = el("goalRemain");
-const progressFill = el("progressFill");
-const progressLabel = el("progressLabel");
-const milestonesEl = el("milestones");
+function fmt(ms){const m=Math.max(0,Math.floor(ms/60000));const h=Math.floor(m/60),mi=m%60;
+if(!h&&!mi)return 'zero hours'; if(!mi)return h+' hours'; if(!h)return mi+' minutes'; return h+' hours, '+mi+' minutes'}
 
-const rangeTotal = el("rangeTotal");
-const rangeAvg = el("rangeAvg");
-const rangeMax = el("rangeMax");
-const rangeCount = el("rangeCount");
-
-const logList = el("logList");
-const toast = el("toast");
-
-const modalBackdrop = el("modalBackdrop");
-const modalAdd = el("modalAdd");
-const modalInfo = el("modalInfo");
-const modalGoal = el("modalGoal");
-
-const startInput = el("startInput");
-const endInput = el("endInput");
-const manualDuration = el("manualDuration");
-const overlapWarning = el("overlapWarning");
-
-const btnInstall = el("btnInstall");
-const goalHoursInput = el("goalHoursInput");
-
-const pad2 = (n) => String(n).padStart(2, "0");
-
-function nowUtcMs() {
-  return Date.now();
-}
-function toIsoLocalInput(ms) {
-  const d = new Date(ms);
-  const yyyy = d.getFullYear();
-  const mm = pad2(d.getMonth() + 1);
-  const dd = pad2(d.getDate());
-  const hh = pad2(d.getHours());
-  const mi = pad2(d.getMinutes());
-  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
-}
-function parseLocalInputToUtcMs(val) {
-  return new Date(val).getTime();
-}
-
-function loadSessions() {
-  try {
-    const raw = localStorage.getItem(KEY_SESSIONS);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
-}
-function saveSessions(sessions) {
-  localStorage.setItem(KEY_SESSIONS, JSON.stringify(sessions));
-}
-function loadActiveStartUtcMs() {
-  const raw = localStorage.getItem(KEY_ACTIVE);
-  if (!raw) return null;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : null;
-}
-function setActiveStartUtcMs(msOrNull) {
-  if (msOrNull == null) localStorage.removeItem(KEY_ACTIVE);
-  else localStorage.setItem(KEY_ACTIVE, String(msOrNull));
-}
-
-function loadGoalHours() {
-  const raw = localStorage.getItem(KEY_GOAL_HOURS);
-  const n = Number(raw);
-  if (Number.isFinite(n) && n >= 0) return Math.floor(n);
-  return 5000; // default goal
-}
-function saveGoalHours(n) {
-  localStorage.setItem(KEY_GOAL_HOURS, String(Math.max(0, Math.floor(n))));
+function render(){
+ const active=load(KEY_ACTIVE,null); const sess=load(KEY_SESS,[]);
+ stateLabel.textContent=active?'Fasting':'Not fasting';
+ btnMain.textContent=active?'End fast':'Start fast';
+ timerLabel.textContent=active?fmt(Date.now()-active):'zero hours';
+ const weekStart=(()=>{const d=new Date();const day=d.getDay()||7;d.setDate(d.getDate()-day+1);d.setHours(0,0,0,0);return d.getTime()})();
+ const weekMs=sess.filter(s=>s.e>=weekStart).reduce((a,s)=>a+s.d,0);
+ weekTotal.textContent=fmt(weekMs);
+ whats.textContent=active?'Fat is becoming the main fuel source.':'Start whenever it fits your day.';
+ const goal=load(KEY_GOAL,5000); const doneH=Math.floor(sess.reduce((a,s)=>a+s.d,0)/3600000);
+ goalDone.textContent=doneH+' hours'; goalTotal.textContent=goal+' hours'; goalRemain.textContent=Math.max(0,goal-doneH)+' hours';
+ const pct=goal?Math.min(100,Math.round(doneH/goal*100)):0; progressFill.style.width=pct+'%'; progressLabel.textContent=pct+' percent';
 }
 
-function msToParts(ms) {
-  const totalMinutes = Math.floor(ms / 60000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return { hours, minutes };
-}
-
-function numberWords(n) {
-  const ones = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
-  const tens = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
-  if (n < 20) return ones[n] ?? String(n);
-  if (n < 100) {
-    const t = Math.floor(n / 10);
-    const o = n % 10;
-    return o === 0 ? tens[t] : `${tens[t]}-${ones[o]}`;
-  }
-  if (n < 1000) {
-    const h = Math.floor(n / 100);
-    const r = n % 100;
-    return r === 0 ? `${ones[h]} hundred` : `${ones[h]} hundred ${numberWords(r)}`;
-  }
-  if (n < 10000) {
-    const th = Math.floor(n / 1000);
-    const r = n % 1000;
-    return r === 0 ? `${ones[th]} thousand` : `${ones[th]} thousand ${numberWords(r)}`;
-  }
-  return String(n);
-}
-
-function fmtDuration(ms) {
-  const { hours, minutes } = msToParts(Math.max(0, ms));
-  if (hours === 0 && minutes === 0) return "zero hours";
-  if (hours === 0) return `${numberWords(minutes)} minutes`;
-  if (minutes === 0) return `${numberWords(hours)} hours`;
-  return `${numberWords(hours)} hours, ${numberWords(minutes)} minutes`;
-}
-
-function fmtHoursOnly(hours) {
-  const h = Math.max(0, Math.floor(hours));
-  return `${numberWords(h)} hours`;
-}
-
-function startOfWeekLocal(ms) {
-  const d = new Date(ms);
-  const day = d.getDay(); // 0 Sun ... 6 Sat
-  const diff = (day === 0 ? -6 : 1 - day); // Monday start
-  d.setDate(d.getDate() + diff);
-  d.setHours(0,0,0,0);
-  return d.getTime();
-}
-function startOfMonthLocal(ms) {
-  const d = new Date(ms);
-  d.setDate(1);
-  d.setHours(0,0,0,0);
-  return d.getTime();
-}
-function startOfYearLocal(ms) {
-  const d = new Date(ms);
-  d.setMonth(0, 1);
-  d.setHours(0,0,0,0);
-  return d.getTime();
-}
-
-function inRangeByEnd(s, rangeStartMs, rangeEndMsExclusive) {
-  return s.endUtcMs >= rangeStartMs && s.endUtcMs < rangeEndMsExclusive;
-}
-
-function calcRangeStats(sessions, range) {
-  const now = Date.now();
-  let start = 0;
-
-  if (range === "week") start = startOfWeekLocal(now);
-  if (range === "month") start = startOfMonthLocal(now);
-  if (range === "year") start = startOfYearLocal(now);
-
-  const end = now + 3650 * 24 * 3600 * 1000;
-  const inRange = sessions.filter((s) => inRangeByEnd(s, start, end));
-
-  const durations = inRange.map((s) => s.durationMs);
-  const total = durations.reduce((a, b) => a + b, 0);
-  const count = inRange.length;
-  const max = count ? Math.max(...durations) : 0;
-  const avg = count ? Math.floor(total / count) : 0;
-
-  return { total, count, max, avg };
-}
-
-function totalLifetimeMs(sessions) {
-  return sessions.reduce((a, s) => a + (Number(s.durationMs) || 0), 0);
-}
-
-function overlapsAny(sessions, startUtcMs, endUtcMs) {
-  return sessions.some((s) => !(endUtcMs <= s.startUtcMs || startUtcMs >= s.endUtcMs));
-}
-
-function showToast(msg) {
-  toast.textContent = msg;
-  toast.hidden = false;
-  setTimeout(() => { toast.hidden = true; }, 2400);
-}
-
-function openModal(which) {
-  modalBackdrop.hidden = false;
-  which.hidden = false;
-}
-function closeModals() {
-  modalBackdrop.hidden = true;
-  modalAdd.hidden = true;
-  modalInfo.hidden = true;
-  modalGoal.hidden = true;
-}
-
-function physiologyStage(hours) {
-  const stages = [
-    { min: 0, max: 4, title: "Fed state", body: "Your body is primarily using recent dietary energy. Insulin tends to be higher as glucose is managed and stored." },
-    { min: 4, max: 8, title: "Insulin falling", body: "Insulin typically begins to decline. Fuel use shifts gradually toward stored energy. Hunger can be driven by routine cues." },
-    { min: 8, max: 12, title: "Glycogen use increasing", body: "Liver glycogen is used more. Fat oxidation rises as the body transitions toward greater metabolic flexibility." },
-    { min: 12, max: 24, title: "Fat metabolism dominant", body: "Fat becomes a primary fuel. Ketones begin to rise. Many people report steadier energy during this window." },
-    { min: 24, max: 48, title: "Deeper ketosis", body: "Ketones can contribute more to brain energy. Cellular maintenance signaling (including autophagy pathways) is often discussed in research." },
-    { min: 48, max: 120, title: "Extended fasting state", body: "The body is strongly fat-adapted. Longer fasts are commonly undertaken with medical guidance, depending on the person and context." },
-    { min: 120, max: Infinity, title: "Long-duration fasting", body: "Very long fasts carry additional risks for some people and are typically done with professional supervision." },
-  ];
-  return stages.find((s) => hours >= s.min && hours < s.max) ?? stages[0];
-}
-
-function buildMilestones(goalHours, doneHours) {
-  // Simple premium ladder; labels are intentionally non-medical
-  const ms = [
-    { pct: 0.10, title: "Apprentice", sub: "Ten percent of your goal" },
-    { pct: 0.25, title: "Practiced", sub: "One quarter complete" },
-    { pct: 0.50, title: "Committed", sub: "Halfway" },
-    { pct: 0.75, title: "Seasoned", sub: "Three quarters complete" },
-    { pct: 1.00, title: "Expert", sub: "Goal reached" },
-  ];
-
-  milestonesEl.innerHTML = "";
-  const frac = goalHours > 0 ? (doneHours / goalHours) : 0;
-
-  ms.forEach((m) => {
-    const target = Math.round(goalHours * m.pct);
-    const on = goalHours > 0 ? (doneHours >= target) : false;
-
-    const wrap = document.createElement("div");
-    wrap.className = "mile";
-
-    const left = document.createElement("div");
-    left.className = "mileLeft";
-    left.innerHTML = `<div class="mileTitle">${m.title}</div><div class="mileSub">${m.sub} • ${numberWords(target)} hours</div>`;
-
-    const badge = document.createElement("div");
-    badge.className = "badge" + (on ? " on" : "");
-    badge.textContent = on ? "Reached" : "Next";
-
-    wrap.appendChild(left);
-    wrap.appendChild(badge);
-    milestonesEl.appendChild(wrap);
-  });
-}
-
-function render() {
-  const sessions = loadSessions()
-    .map((s) => ({
-      id: s.id,
-      startUtcMs: Number(s.startUtcMs),
-      endUtcMs: Number(s.endUtcMs),
-      durationMs: Number(s.durationMs),
-      note: s.note || "",
-    }))
-    .filter((s) => Number.isFinite(s.startUtcMs) && Number.isFinite(s.endUtcMs) && Number.isFinite(s.durationMs))
-    .sort((a, b) => b.endUtcMs - a.endUtcMs);
-
-  saveSessions(sessions);
-
-  const activeStart = loadActiveStartUtcMs();
-  const isFasting = activeStart != null;
-
-  stateLabel.textContent = isFasting ? "Fasting" : "Not fasting";
-  btnMain.textContent = isFasting ? "End fast" : "Start fast";
-
-  const now = Date.now();
-  const activeMs = isFasting ? (now - activeStart) : 0;
-  timerLabel.textContent = isFasting ? fmtDuration(activeMs) : "zero hours";
-
-  // mini totals
-  const week = calcRangeStats(sessions, "week");
-  const month = calcRangeStats(sessions, "month");
-  weekTotal.textContent = fmtDuration(week.total);
-  monthTotal.textContent = fmtDuration(month.total);
-
-  // goal stats
-  const goalHours = loadGoalHours();
-  const doneMs = totalLifetimeMs(sessions);
-  const doneHours = Math.floor(doneMs / 3600000);
-  const remainHours = Math.max(0, goalHours - doneHours);
-  const pct = goalHours > 0 ? Math.min(1, doneHours / goalHours) : 0;
-
-  goalDone.textContent = fmtHoursOnly(doneHours);
-  goalTotal.textContent = fmtHoursOnly(goalHours);
-  goalRemain.textContent = fmtHoursOnly(remainHours);
-  progressFill.style.width = `${Math.round(pct * 1000) / 10}%`;
-  progressLabel.textContent = `${numberWords(Math.round(pct * 100))} percent`;
-
-  buildMilestones(goalHours, doneHours);
-
-  // range stats (default follows selected)
-  const selected = document.querySelector(".segBtn.isOn")?.dataset?.range || "week";
-  const stats = calcRangeStats(sessions, selected);
-  rangeTotal.textContent = fmtDuration(stats.total);
-  rangeAvg.textContent = fmtDuration(stats.avg);
-  rangeMax.textContent = fmtDuration(stats.max);
-  rangeCount.textContent = numberWords(stats.count);
-
-  // physiology panel content
-  if (isFasting) {
-    const hrs = activeMs / 3600000;
-    const st = physiologyStage(hrs);
-    el("physNow").innerHTML = `
-      <div style="font-weight:850; margin-bottom:6px;">${st.title}</div>
-      <div style="color: rgba(12,20,18,.70); font-weight:650; line-height:1.4;">${st.body}</div>
-      <div style="margin-top:10px; color: rgba(12,20,18,.60); font-weight:750; font-size:12px;">
-        Current fast: ${fmtDuration(activeMs)}
-      </div>
-    `;
-  } else {
-    el("physNow").innerHTML = `
-      <div style="font-weight:850; margin-bottom:6px;">No active fast</div>
-      <div style="color: rgba(12,20,18,.70); font-weight:650; line-height:1.4;">
-        Start a fast to see time-based physiology milestones.
-      </div>
-    `;
-  }
-
-  // log
-  logList.innerHTML = "";
-  if (!sessions.length) {
-    const empty = document.createElement("div");
-    empty.className = "hint";
-    empty.textContent = "No entries yet.";
-    logList.appendChild(empty);
-    return;
-  }
-
-  sessions.slice(0, 80).forEach((s) => {
-    const d = new Date(s.endUtcMs);
-    const dateStr = d.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
-    const timeStr = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-
-    const item = document.createElement("div");
-    item.className = "logItem";
-
-    const left = document.createElement("div");
-    left.className = "logMain";
-    left.innerHTML = `
-      <div class="logDate">${dateStr}</div>
-      <div class="logSub">${fmtDuration(s.durationMs)} • ended at ${timeStr}</div>
-    `;
-
-    const right = document.createElement("div");
-    right.className = "logBtns";
-
-    const btnDel = document.createElement("button");
-    btnDel.className = "smallBtn";
-    btnDel.textContent = "Delete";
-    btnDel.onclick = () => {
-      const next = loadSessions().filter((x) => x.id !== s.id);
-      saveSessions(next);
-      showToast("Deleted entry.");
-      render();
-    };
-
-    right.appendChild(btnDel);
-
-    item.appendChild(left);
-    item.appendChild(right);
-    logList.appendChild(item);
-  });
-}
-
-function onTick() {
-  const activeStart = loadActiveStartUtcMs();
-  if (activeStart != null) {
-    const ms = Date.now() - activeStart;
-    timerLabel.textContent = fmtDuration(ms);
-  }
-}
-
-btnMain.addEventListener("click", () => {
-  const activeStart = loadActiveStartUtcMs();
-  if (activeStart == null) {
-    setActiveStartUtcMs(nowUtcMs());
-    showToast("Fast started.");
-    render();
-    return;
-  }
-
-  const ms = Date.now() - activeStart;
-  const ok = confirm(`End fast?\n\nDuration: ${fmtDuration(ms)}`);
-  if (!ok) return;
-
-  const sessions = loadSessions();
-  const endUtcMs = Date.now();
-  const startUtcMs = activeStart;
-
-  const session = {
-    id: `s_${endUtcMs}_${Math.random().toString(16).slice(2)}`,
-    startUtcMs,
-    endUtcMs,
-    durationMs: Math.max(0, endUtcMs - startUtcMs),
-  };
-
-  sessions.unshift(session);
-  saveSessions(sessions);
-  setActiveStartUtcMs(null);
-
-  showToast(`Logged: ${fmtDuration(session.durationMs)}`);
-  render();
-});
-
-el("btnAddMissed").addEventListener("click", () => {
-  const now = Date.now();
-  const startGuess = now - 16 * 3600000;
-  startInput.value = toIsoLocalInput(startGuess);
-  endInput.value = toIsoLocalInput(now);
-  overlapWarning.hidden = true;
-  manualDuration.textContent = `Duration: ${fmtDuration(now - startGuess)}`;
-  openModal(modalAdd);
-});
-
-function updateManualDuration() {
-  if (!startInput.value || !endInput.value) return;
-  const startMs = parseLocalInputToUtcMs(startInput.value);
-  const endMs = parseLocalInputToUtcMs(endInput.value);
-  const dur = endMs - startMs;
-  manualDuration.textContent = `Duration: ${fmtDuration(dur)}`;
-
-  const sessions = loadSessions();
-  overlapWarning.hidden = !overlapsAny(sessions, startMs, endMs);
-}
-startInput.addEventListener("change", updateManualDuration);
-endInput.addEventListener("change", updateManualDuration);
-
-el("btnSaveManual").addEventListener("click", () => {
-  if (!startInput.value || !endInput.value) return;
-
-  const startMs = parseLocalInputToUtcMs(startInput.value);
-  const endMs = parseLocalInputToUtcMs(endInput.value);
-
-  if (!(endMs > startMs)) {
-    alert("End must be after start.");
-    return;
-  }
-
-  const dur = endMs - startMs;
-
-  const sevenDays = 7 * 24 * 3600000;
-  if (dur > sevenDays) {
-    const ok = confirm("This entry is longer than seven days. Save anyway?");
-    if (!ok) return;
-  }
-
-  const sessions = loadSessions();
-  sessions.unshift({
-    id: `m_${endMs}_${Math.random().toString(16).slice(2)}`,
-    startUtcMs: startMs,
-    endUtcMs: endMs,
-    durationMs: dur,
-  });
-  saveSessions(sessions);
-
-  closeModals();
-  showToast(`Logged: ${fmtDuration(dur)}`);
-  render();
-});
-
-el("btnCancelManual").addEventListener("click", closeModals);
-el("btnCloseModal").addEventListener("click", closeModals);
-
-el("btnPhys").addEventListener("click", () => openModal(modalInfo));
-el("btnCloseInfo").addEventListener("click", closeModals);
-
-el("btnGoal").addEventListener("click", () => {
-  goalHoursInput.value = String(loadGoalHours());
-  openModal(modalGoal);
-});
-el("btnEditGoal").addEventListener("click", () => {
-  goalHoursInput.value = String(loadGoalHours());
-  openModal(modalGoal);
-});
-el("btnCloseGoal").addEventListener("click", closeModals);
-el("btnCancelGoal").addEventListener("click", closeModals);
-el("btnSaveGoal").addEventListener("click", () => {
-  const n = Number(goalHoursInput.value);
-  if (!Number.isFinite(n) || n < 0) {
-    alert("Please enter a valid number of hours.");
-    return;
-  }
-  saveGoalHours(n);
-  closeModals();
-  showToast("Goal updated.");
-  render();
-});
-
-modalBackdrop.addEventListener("click", closeModals);
-
-el("btnDisclaimer").addEventListener("click", () => openModal(modalInfo));
-
-document.querySelectorAll(".segBtn").forEach((b) => {
-  b.addEventListener("click", () => {
-    document.querySelectorAll(".segBtn").forEach((x) => x.classList.remove("isOn"));
-    b.classList.add("isOn");
-    render();
-  });
-});
-
-// export / import
-el("btnExport").addEventListener("click", () => {
-  const payload = {
-    exportedAtUtcMs: Date.now(),
-    activeStartUtcMs: loadActiveStartUtcMs(),
-    goalHours: loadGoalHours(),
-    sessions: loadSessions(),
-  };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "fastbutton-backup.json";
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast("Exported backup.");
-});
-
-el("fileImport").addEventListener("change", async (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  const text = await file.text();
-  try {
-    const data = JSON.parse(text);
-    if (!data || !Array.isArray(data.sessions)) throw new Error("Invalid backup");
-    saveSessions(data.sessions);
-    if (data.activeStartUtcMs != null) setActiveStartUtcMs(Number(data.activeStartUtcMs));
-    if (data.goalHours != null) saveGoalHours(Number(data.goalHours));
-    showToast("Imported backup.");
-    render();
-  } catch {
-    alert("Import failed. Please choose a valid backup file.");
-  } finally {
-    e.target.value = "";
-  }
-});
-
-// PWA install button (Android/Chrome)
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  btnInstall.hidden = false;
-});
-btnInstall.addEventListener("click", async () => {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  btnInstall.hidden = true;
-});
-
-// service worker
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
-  });
-}
-
-render();
-setInterval(onTick, 1000);
+btnMain.onclick=()=>{const active=load(KEY_ACTIVE,null);
+ if(!active){save(KEY_ACTIVE,Date.now());show('Started.');render();return}
+ const ms=Date.now()-active; if(!confirm('End fast?\n\nDuration: '+fmt(ms)+'\nYou can always start again.'))return;
+ const sess=load(KEY_SESS,[]); sess.unshift({s:active,e:Date.now(),d:ms}); save(KEY_SESS,sess); save(KEY_ACTIVE,null);
+ show('Logged. Start again whenever you’re ready.'); render();
+};
+
+el('btnMore').onclick=()=>openModal(modalMore);
+el('btnCloseMore').onclick=closeAll;
+el('btnAddMissed').onclick=()=>{openModal(modalAdd); const now=Date.now(); startInput.value=new Date(now-16*3600000).toISOString().slice(0,16); endInput.value=new Date(now).toISOString().slice(0,16)}
+el('btnCloseAdd').onclick=closeAll; el('btnCancelManual').onclick=closeAll;
+el('btnSaveManual').onclick=()=>{const s=new Date(startInput.value).getTime(),e=new Date(endInput.value).getTime();
+ if(!(e>s))return alert('End needs to be after start.'); const sess=load(KEY_SESS,[]); sess.unshift({s,e,d:e-s}); save(KEY_SESS,sess); closeAll(); show('Logged.'); render();}
+el('btnGoal').onclick=()=>openModal(modalGoal); el('btnCloseGoal').onclick=closeAll; el('btnCancelGoal').onclick=closeAll;
+el('btnSaveGoal').onclick=()=>{save(KEY_GOAL,Number(goalHoursInput.value||5000)); closeAll(); show('Updated.'); render();}
+el('btnTips').onclick=()=>{const list=el('tipsList'); list.innerHTML=''; tips.forEach(t=>{const li=document.createElement('li'); li.textContent=t; list.appendChild(li)}); openModal(modalTips)}
+el('btnCloseTips').onclick=closeAll;
+el('btnStats').onclick=()=>openModal(modalStats); el('btnCloseStats').onclick=closeAll;
+el('btnBackup').onclick=()=>openModal(modalBackup); el('btnCloseBackup').onclick=closeAll;
+el('btnDisclaimer').onclick=()=>openModal(modalInfo); el('btnCloseInfo').onclick=closeAll;
+
+render(); setInterval(render,1000);

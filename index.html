@@ -1,221 +1,166 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f2a24" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" href="/icon-192.png" />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
-    <link rel="stylesheet" href="/styles.css" />
-    <title>FastButton</title>
-  </head>
-  <body>
-    <div class="bg"></div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f2a24" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="stylesheet" href="/styles.css" />
+  <title>FastButton</title>
+</head>
+<body>
+  <div class="bg"></div>
 
-    <main class="shell">
-      <header class="top">
-        <div class="brand">
-          <div class="dot"></div>
-          <div>
-            <div class="name">FastButton</div>
-            <div class="sub">Local-first fasting tracker</div>
-          </div>
+  <main class="shell">
+    <header class="top">
+      <div class="brand">
+        <div class="dot"></div>
+        <div>
+          <div class="name">FastButton</div>
+          <div class="sub">Local-first fasting tracker</div>
         </div>
+      </div>
+      <button id="btnInstall" class="ghost" hidden>Install</button>
+    </header>
 
-        <button id="btnInstall" class="ghost" hidden>Install</button>
-      </header>
+    <!-- HOME -->
+    <section class="card hero">
+      <div class="kicker">Today</div>
+      <div class="state" id="stateLabel">Not fasting</div>
+      <div class="timer" id="timerLabel">zero hours</div>
+      <div class="whisper" id="whatsHappening">Start whenever it fits your day.</div>
+      <button id="btnMain" class="primary">Start fast</button>
+      <div class="weekly">This week: <span id="weekTotal">zero hours</span></div>
+      <button id="btnMore" class="more">More</button>
+    </section>
 
-      <section class="card hero">
-        <div class="kicker" id="todayLabel">Today</div>
-
-        <div class="state" id="stateLabel">Not fasting</div>
-        <div class="timer" id="timerLabel">zero hours</div>
-
-        <button id="btnMain" class="primary">Start fast</button>
-
-        <div class="meta">
-          <button id="btnAddMissed" class="link">Add missed fast</button>
-          <span class="sep">•</span>
-          <button id="btnPhys" class="link">What’s happening now?</button>
-          <span class="sep">•</span>
-          <button id="btnGoal" class="link">Goal</button>
-        </div>
-
-        <div class="mini">
-          <div class="miniItem">
-            <div class="miniLabel">This week</div>
-            <div class="miniValue" id="weekTotal">zero hours</div>
-          </div>
-          <div class="miniItem">
-            <div class="miniLabel">This month</div>
-            <div class="miniValue" id="monthTotal">zero hours</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card" id="goalCard">
-        <div class="row">
-          <div class="title">Lifetime goal</div>
-          <button id="btnEditGoal" class="ghostSmall">Edit</button>
-        </div>
-
-        <div class="goalNums">
-          <div>
-            <div class="mLabel">Completed</div>
-            <div class="mValue" id="goalDone">zero hours</div>
-          </div>
-          <div>
-            <div class="mLabel">Goal</div>
-            <div class="mValue" id="goalTotal">five thousand hours</div>
-          </div>
-          <div>
-            <div class="mLabel">Remaining</div>
-            <div class="mValue" id="goalRemain">five thousand hours</div>
-          </div>
-        </div>
-
-        <div class="progressWrap">
-          <div class="progressBar">
-            <div id="progressFill" class="progressFill" style="width:0%"></div>
-          </div>
-          <div class="progressLabel" id="progressLabel">zero percent</div>
-        </div>
-
-        <div class="milestones" id="milestones">
-          <!-- populated by JS -->
-        </div>
-      </section>
-
-      <section class="card" id="statsCard">
-        <div class="row">
-          <div class="title">Stats</div>
-          <div class="seg">
-            <button class="segBtn isOn" data-range="week">Week</button>
-            <button class="segBtn" data-range="month">Month</button>
-            <button class="segBtn" data-range="year">Year</button>
-          </div>
-        </div>
-
-        <div class="grid">
-          <div class="metric">
-            <div class="mLabel">Total fasting</div>
-            <div class="mValue" id="rangeTotal">zero hours</div>
-          </div>
-          <div class="metric">
-            <div class="mLabel">Average fast</div>
-            <div class="mValue" id="rangeAvg">zero hours</div>
-          </div>
-          <div class="metric">
-            <div class="mLabel">Longest fast</div>
-            <div class="mValue" id="rangeMax">zero hours</div>
-          </div>
-          <div class="metric">
-            <div class="mLabel">Fasts logged</div>
-            <div class="mValue" id="rangeCount">zero</div>
-          </div>
-        </div>
-
-        <div class="row2">
-          <div class="title2">Log</div>
-          <div class="actions">
-            <button id="btnExport" class="ghostSmall">Export</button>
-            <label class="ghostSmall file">
-              Import
-              <input id="fileImport" type="file" accept="application/json" />
-            </label>
-          </div>
-        </div>
-
-        <div id="logList" class="log"></div>
-      </section>
-
-      <footer class="foot">
-        <button id="btnDisclaimer" class="linkSmall">Medical disclaimer</button>
-      </footer>
-    </main>
-
-    <!-- Add missed fast modal -->
+    <!-- MORE (BOTTOM SHEET) -->
     <div id="modalBackdrop" class="backdrop" hidden></div>
-    <div id="modalAdd" class="modal" hidden>
+    <section id="modalMore" class="modal" hidden>
       <div class="modalTop">
-        <div class="modalTitle">Add missed fast</div>
-        <button id="btnCloseModal" class="x">✕</button>
+        <div class="modalTitle">More</div>
+        <button id="btnCloseMore" class="x">✕</button>
       </div>
 
+      <div class="stack">
+        <button id="btnAddMissed" class="rowBtn">Add missed fast</button>
+        <button id="btnGoal" class="rowBtn">Reference goal</button>
+        <button id="btnTips" class="rowBtn">Want to quit?</button>
+        <button id="btnStats" class="rowBtn">Stats</button>
+        <button id="btnBackup" class="rowBtn">Backup</button>
+        <button id="btnDisclaimer" class="rowBtn muted">Medical disclaimer</button>
+      </div>
+    </section>
+
+    <!-- ADD MISSED -->
+    <section id="modalAdd" class="modal" hidden>
+      <div class="modalTop">
+        <div class="modalTitle">Add missed fast</div>
+        <button id="btnCloseAdd" class="x">✕</button>
+      </div>
+      <div class="note">Forgot to start or stop? That’s normal.</div>
       <div class="field">
         <label>Start</label>
         <input id="startInput" type="datetime-local" />
       </div>
-
       <div class="field">
         <label>End</label>
         <input id="endInput" type="datetime-local" />
       </div>
-
       <div class="hint" id="manualDuration">Duration: zero hours</div>
-
       <div class="modalActions">
         <button id="btnSaveManual" class="primary">Save</button>
         <button id="btnCancelManual" class="ghost">Cancel</button>
       </div>
+      <div class="fineprint" id="overlapWarning" hidden>This overlaps another entry. You can still save it.</div>
+    </section>
 
-      <div class="fineprint" id="overlapWarning" hidden>
-        This overlaps an existing entry. Consider editing the times.
-      </div>
-    </div>
-
-    <!-- Goal modal -->
-    <div id="modalGoal" class="modal" hidden>
+    <!-- GOAL -->
+    <section id="modalGoal" class="modal" hidden>
       <div class="modalTop">
-        <div class="modalTitle">Lifetime goal</div>
+        <div class="modalTitle">Reference goal</div>
         <button id="btnCloseGoal" class="x">✕</button>
       </div>
-
+      <div class="note">A reference point, not a requirement.</div>
       <div class="field">
         <label>Goal hours</label>
-        <input id="goalHoursInput" type="number" min="0" step="1" inputmode="numeric" />
+        <input id="goalHoursInput" type="number" min="0" step="1" />
       </div>
-
-      <div class="hint">Default: five thousand hours (expert).</div>
-
+      <div class="progressWrap">
+        <div class="progressBar"><div id="progressFill" class="progressFill"></div></div>
+        <div class="progressLabel" id="progressLabel">zero percent</div>
+      </div>
+      <div class="triplet">
+        <div><div class="mLabel">Completed</div><div class="mValue" id="goalDone">zero hours</div></div>
+        <div><div class="mLabel">Reference</div><div class="mValue" id="goalTotal">five thousand hours</div></div>
+        <div><div class="mLabel">Remaining</div><div class="mValue" id="goalRemain">five thousand hours</div></div>
+      </div>
       <div class="modalActions">
         <button id="btnSaveGoal" class="primary">Save</button>
         <button id="btnCancelGoal" class="ghost">Cancel</button>
       </div>
-    </div>
+    </section>
 
-    <!-- Physiology + disclaimer modal -->
-    <div id="modalInfo" class="modal" hidden>
+    <!-- TIPS -->
+    <section id="modalTips" class="modal" hidden>
       <div class="modalTop">
-        <div class="modalTitle">Fasting physiology</div>
+        <div class="modalTitle">Want to quit?</div>
+        <button id="btnCloseTips" class="x">✕</button>
+      </div>
+      <div class="note">These are gentle, educational suggestions. Not medical advice.</div>
+      <ol id="tipsList" class="tips"></ol>
+    </section>
+
+    <!-- STATS -->
+    <section id="modalStats" class="modal" hidden>
+      <div class="modalTop">
+        <div class="modalTitle">Stats</div>
+        <button id="btnCloseStats" class="x">✕</button>
+      </div>
+      <div class="seg">
+        <button class="segBtn isOn" data-range="week">Week</button>
+        <button class="segBtn" data-range="month">Month</button>
+        <button class="segBtn" data-range="year">Year</button>
+      </div>
+      <div class="grid">
+        <div class="metric"><div class="mLabel">Total fasting</div><div class="mValue" id="rangeTotal">zero hours</div></div>
+        <div class="metric"><div class="mLabel">Average fast</div><div class="mValue" id="rangeAvg">zero hours</div></div>
+        <div class="metric"><div class="mLabel">Longest fast</div><div class="mValue" id="rangeMax">zero hours</div></div>
+        <div class="metric"><div class="mLabel">Fasts logged</div><div class="mValue" id="rangeCount">zero</div></div>
+      </div>
+      <div class="log" id="logList"></div>
+    </section>
+
+    <!-- BACKUP -->
+    <section id="modalBackup" class="modal" hidden>
+      <div class="modalTop">
+        <div class="modalTitle">Backup</div>
+        <button id="btnCloseBackup" class="x">✕</button>
+      </div>
+      <div class="row">
+        <button id="btnExport" class="ghost">Export</button>
+        <label class="ghost file">Import<input id="fileImport" type="file" accept="application/json" /></label>
+      </div>
+      <div class="note">This app keeps time, not score. Miss a day and start again.</div>
+    </section>
+
+    <!-- DISCLAIMER -->
+    <section id="modalInfo" class="modal" hidden>
+      <div class="modalTop">
+        <div class="modalTitle">Medical disclaimer</div>
         <button id="btnCloseInfo" class="x">✕</button>
       </div>
-
-      <div class="infoBlock" id="physNow"></div>
-      <div class="infoNote">Educational overview. Not medical advice.</div>
-
-      <details class="details">
-        <summary>Medical disclaimer</summary>
-        <div class="detailsBody">
-          This app provides general, educational information about fasting physiology
-          based on publicly available research and clinical discussions. It is not
-          intended as medical advice and should not be used to diagnose, treat, or
-          prevent any medical condition.
-          <br /><br />
-          Fasting may not be appropriate for everyone. If you are pregnant,
-          breastfeeding, have diabetes, a history of eating disorders, gout, are
-          taking medications, or have any medical condition, consult a qualified
-          healthcare professional before fasting—especially for extended periods.
-          <br /><br />
-          Extended fasts beyond twenty-four to forty-eight hours are commonly done
-          under medical supervision.
-        </div>
-      </details>
-    </div>
+      <div class="detailsBody">
+        This app provides general, educational information about fasting physiology and habits. It is not intended as medical advice.
+        If you are pregnant, breastfeeding, have diabetes, a history of eating disorders, gout, take medications, or have a medical condition,
+        consult a qualified professional before fasting—especially for extended periods.
+      </div>
+    </section>
 
     <div id="toast" class="toast" hidden></div>
-
     <script src="/app.js"></script>
-  </body>
+  </main>
+</body>
 </html>
