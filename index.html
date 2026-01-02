@@ -1,14 +1,523 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="evergreen">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f2a24" />
+  <meta name="theme-color" content="#FAFAF9" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>FastButton</title>
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/icon-192.png" />
   <link rel="apple-touch-icon" href="/icon-192.png" />
-  <link rel="stylesheet" href="/styles.css" />
-  <title>FastButton</title>
+  
+  <!-- PREMIUM FONT: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* --- TOKENS & RESET --- */
+    :root {
+      /* Base - Onyx (Default) */
+      --bgA: #FAFAF9; 
+      --bgB: #F5F5F4;
+      
+      --surface: rgba(255, 255, 255, 0.6);
+      --surface-border: rgba(0, 0, 0, 0.04);
+      --surface-blur: 32px;
+      
+      --ink: #1C1917; 
+      --ink-muted: #78716C; 
+      --ink-subtle: #A8A29E;
+      
+      /* Accent: Deep Charcoal */
+      --accent: #292524; 
+      --accent-gradient: linear-gradient(180deg, #292524, #1C1917);
+      --accent-text: #ffffff;
+      
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.03);
+      --shadow-md: 0 8px 16px -4px rgba(0,0,0,0.04);
+      --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.08);
+      
+      --radius-lg: 32px;
+      --radius-md: 20px;
+      --radius-sm: 12px;
+      
+      --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    /* THEMES */
+    /* Ocean -> Slate (Cool Grey/Blue) */
+    html[data-theme="ocean"] {
+      --bgA: #F8FAFC;
+      --bgB: #F1F5F9;
+      --ink: #0F172A;
+      --ink-muted: #64748B;
+      --accent: #334155;
+      --accent-gradient: linear-gradient(180deg, #334155, #1E293B);
+    }
+    
+    /* Indigo -> Midnight (Deep Navy) */
+    html[data-theme="indigo"] {
+      --bgA: #F9FAFB;
+      --bgB: #F3F4F6;
+      --ink: #111827;
+      --accent: #1F2937;
+      --accent-gradient: linear-gradient(180deg, #1F2937, #111827);
+    }
+    
+    /* Amber -> Clay (Earthy Terracotta) */
+    html[data-theme="amber"] {
+      --bgA: #FFFCF5;
+      --bgB: #FDF6E8;
+      --ink: #451a03;
+      --accent: #A05E28;
+      --accent-gradient: linear-gradient(180deg, #A05E28, #78350f);
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(180deg, var(--bgA), var(--bgB));
+      color: var(--ink);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* --- LAYOUT SHELL --- */
+    .bg { position: fixed; inset: 0; pointer-events: none; z-index: -1; }
+    
+    /* Subtle Grain for Texture */
+    .bg::before {
+      content: "";
+      position: absolute;
+      inset: -50%;
+      width: 200%;
+      height: 200%;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+      animation: grain 8s steps(10) infinite;
+      pointer-events: none;
+    }
+    @keyframes grain { 0%, 100% { transform:translate(0,0) } 10% { transform:translate(-5%,-5%) } 20% { transform:translate(-10%,5%) } 30% { transform:translate(5%,-10%) } 40% { transform:translate(-5%,15%) } 50% { transform:translate(-10%,5%) } 60% { transform:translate(15%,0) } 70% { transform:translate(0,10%) } 80% { transform:translate(-15%,0) } 90% { transform:translate(10%,5%) } }
+
+    .shell {
+      width: 100%;
+      max-width: 440px;
+      height: 100%;
+      max-height: 900px;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      position: relative;
+    }
+
+    /* --- HEADER --- */
+    .top {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding-top: max(env(safe-area-inset-top), 24px);
+      margin-bottom: 24px;
+      opacity: 0.8;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ink);
+      opacity: 0.3;
+    }
+    .name {
+      font-weight: 500;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+    #btnInstall { display: none; }
+
+    /* --- HERO CARD --- */
+    .hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: relative;
+    }
+    
+    .state-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 18px;
+      border-radius: 99px;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      backdrop-filter: blur(var(--surface-blur));
+      -webkit-backdrop-filter: blur(var(--surface-blur));
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 32px;
+    }
+    
+    .state {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+
+    .timer {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      /* Large, thin, premium typography */
+      font-size: clamp(56px, 17vw, 92px);
+      font-weight: 300;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: var(--ink);
+      margin: 16px 0;
+      transition: opacity 0.3s var(--ease-out);
+    }
+
+    .whisper {
+      font-size: 16px;
+      color: var(--ink-muted);
+      max-width: 280px;
+      line-height: 1.5;
+      margin-bottom: 48px;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+    }
+
+    /* --- PRIMARY ACTIONS --- */
+    .action-area {
+      width: 100%;
+      margin-top: auto;
+      padding-bottom: max(env(safe-area-inset-bottom), 32px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .primary {
+      width: 100%;
+      height: 68px;
+      border: none;
+      border-radius: 22px;
+      color: var(--accent-text);
+      background: var(--accent-gradient);
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
+      transition: transform 0.2s cubic-bezier(0.3, 0, 0, 1), box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .primary::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+      pointer-events: none;
+    }
+
+    .primary:active {
+      transform: scale(0.96);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .weekly {
+      font-size: 13px;
+      color: var(--ink-subtle);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .more {
+      margin-top: -8px;
+      border: none;
+      background: transparent;
+      color: var(--ink-muted);
+      font-weight: 500;
+      font-size: 14px;
+      padding: 12px 24px;
+      border-radius: 99px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: color 0.2s;
+    }
+    .more:hover { color: var(--ink); }
+
+    /* --- MODALS (Bottom Sheet) --- */
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 90;
+      opacity: 0;
+      transition: opacity 0.3s var(--ease-out);
+      pointer-events: none;
+    }
+    .backdrop:not([hidden]) {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      max-width: 500px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+      z-index: 100;
+      transform: translateY(110%);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
+    }
+    
+    .modal:not([hidden]) {
+      transform: translateY(0);
+      display: flex;
+    }
+
+    @media (min-width: 550px) {
+      .modal {
+        left: 50%;
+        transform: translateX(-50%) translateY(110%);
+        width: 100%;
+        max-width: 460px;
+        bottom: 24px;
+      }
+      .modal:not([hidden]) {
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .modalTop {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    
+    .modalTitle {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+    
+    .x {
+      border: none;
+      background: rgba(0,0,0,0.03);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 14px;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .x:hover { background: rgba(0,0,0,0.08); }
+
+    .stack { display: flex; flex-direction: column; gap: 8px; }
+    
+    .rowBtn {
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      background: var(--bgA);
+      color: var(--ink);
+      font-weight: 500;
+      font-size: 15px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'Inter', sans-serif;
+    }
+    .rowBtn:hover { background: #fff; border-color: var(--surface-border); box-shadow: var(--shadow-sm); }
+    .rowBtn:active { transform: scale(0.98); }
+    .rowBtn::after {
+      content: "→";
+      opacity: 0.3;
+      font-weight: 400;
+    }
+    .rowBtn.muted { color: var(--ink-muted); background: transparent; }
+    .rowBtn.muted::after { content: ""; }
+
+    /* Inputs */
+    .field { margin: 24px 0; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-muted);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .field input {
+      width: 100%;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid var(--surface-border);
+      background: var(--bgA);
+      font-size: 16px;
+      color: var(--ink);
+      font-family: 'Inter', sans-serif;
+      transition: border 0.2s, background 0.2s;
+    }
+    .field input:focus {
+      outline: none;
+      background: #fff;
+      border-color: var(--accent);
+    }
+
+    .note { font-size: 15px; color: var(--ink-muted); line-height: 1.6; margin-bottom: 16px; }
+    .hint { font-size: 13px; color: var(--ink-muted); margin-top: 8px; }
+    .fineprint { font-size: 12px; color: #D64545; margin-top: 8px; }
+
+    /* Actions */
+    .modalActions { display: flex; gap: 12px; margin-top: 32px; }
+    .modalActions button { flex: 1; height: 52px; border-radius: 16px; font-size: 16px; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif;}
+    .ghost { background: transparent; color: var(--ink-muted); }
+    .ghost:hover { background: var(--bgB); color: var(--ink); }
+
+    /* Progress & Stats */
+    .progressWrap { display: flex; gap: 12px; align-items: center; margin: 24px 0; }
+    .progressBar { flex: 1; height: 8px; border-radius: 99px; background: var(--bgB); overflow: hidden; }
+    .progressFill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.5s var(--ease-out); }
+    .progressLabel { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .triplet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 32px; }
+    .triplet div { text-align: center; }
+    .mLabel { font-size: 11px; color: var(--ink-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .mValue { font-weight: 600; font-size: 16px; font-variant-numeric: tabular-nums; }
+
+    /* Segment Control */
+    .seg { display: flex; background: var(--bgB); padding: 4px; border-radius: 14px; margin-bottom: 24px; }
+    .segBtn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 10px;
+      border-radius: 11px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .segBtn.isOn { background: #fff; color: var(--ink); box-shadow: var(--shadow-sm); font-weight: 600; }
+
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .metric {
+      background: var(--bgA);
+      border-radius: 18px;
+      padding: 20px;
+      text-align: left;
+    }
+
+    /* Logs */
+    .log { max-height: 40vh; overflow-y: auto; margin-top: 24px; }
+    .log div { padding: 14px 0; border-bottom: 1px solid var(--surface-border); font-size: 14px; color: var(--ink-muted); display:flex; justify-content:space-between; }
+    .log div span { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+    
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: var(--accent);
+      color: var(--accent-text);
+      padding: 12px 24px;
+      border-radius: 99px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      transition: all 0.4s var(--ease-out);
+      z-index: 200;
+      pointer-events: none;
+    }
+    .toast:not([hidden]) {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Theme Grid */
+    .themeGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .themeChip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid transparent;
+      border-radius: 16px;
+      padding: 18px;
+      background: var(--bgA);
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--ink);
+      transition: 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .themeChip:hover { background: #fff; box-shadow: var(--shadow-sm); }
+    .themeChip.isOn { background: #fff; border-color: var(--accent); box-shadow: var(--shadow-sm); }
+    .swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    .swEvergreen { background: #292524; } 
+    .swOcean { background: #334155; }
+    .swIndigo { background: #1F2937; }
+    .swAmber { background: #A05E28; }
+
+    /* Tips List */
+    .tips { padding-left: 20px; line-height: 1.7; color: var(--ink-muted); }
+    .tips li { margin-bottom: 12px; }
+
+    [hidden] { display: none !important; }
+
+  </style>
 </head>
 <body>
   <div class="bg"></div>
@@ -17,39 +526,42 @@
     <header class="top">
       <div class="brand">
         <div class="dot"></div>
-        <div>
-          <div class="name">FastButton</div>
-          <div class="sub">Local-first fasting tracker</div>
-        </div>
+        <div class="name">FastButton</div>
       </div>
-      <button id="btnInstall" class="ghost" hidden>Install</button>
     </header>
 
     <!-- HOME -->
-    <section class="card hero">
-      <div class="kicker">Today</div>
-      <div class="state" id="stateLabel">Not fasting</div>
-      <div class="timer" id="timerLabel">zero hours</div>
+    <section class="hero">
+      <div class="state-pill">
+        <span class="state" id="stateLabel">Not fasting</span>
+      </div>
+      
+      <div class="timer" id="timerLabel">00h 00m</div>
+      
       <div class="whisper" id="whatsHappening">Start whenever it fits your day.</div>
-      <button id="btnMain" class="primary">Start fast</button>
-      <div class="weekly">This week: <span id="weekTotal">zero hours</span></div>
-      <button id="btnMore" class="more">More</button>
+      
+      <div class="action-area">
+        <button id="btnMain" class="primary">Start fast</button>
+        <div class="weekly">This week: <span id="weekTotal">zero hours</span></div>
+        <button id="btnMore" class="more">More</button>
+      </div>
     </section>
 
-    <!-- MORE (BOTTOM SHEET) -->
+    <!-- MODALS -->
     <div id="modalBackdrop" class="backdrop" hidden></div>
+    
+    <!-- MORE MENU -->
     <section id="modalMore" class="modal" hidden>
       <div class="modalTop">
-        <div class="modalTitle">More</div>
+        <div class="modalTitle">Menu</div>
         <button id="btnCloseMore" class="x">✕</button>
       </div>
-
       <div class="stack">
         <button id="btnAddMissed" class="rowBtn">Add missed fast</button>
         <button id="btnGoal" class="rowBtn">Reference goal</button>
         <button id="btnTips" class="rowBtn">Want to quit?</button>
-        <button id="btnStats" class="rowBtn">Stats</button>
-        <button id="btnBackup" class="rowBtn">Backup</button>
+        <button id="btnStats" class="rowBtn">History & Stats</button>
+        <button id="btnBackup" class="rowBtn">Backup data</button>
         <button id="btnTheme" class="rowBtn">Theme</button>
         <button id="btnDisclaimer" class="rowBtn muted">Medical disclaimer</button>
       </div>
@@ -58,24 +570,24 @@
     <!-- ADD MISSED -->
     <section id="modalAdd" class="modal" hidden>
       <div class="modalTop">
-        <div class="modalTitle">Add missed fast</div>
+        <div class="modalTitle">Add entry</div>
         <button id="btnCloseAdd" class="x">✕</button>
       </div>
-      <div class="note">Forgot to start or stop? That’s normal.</div>
+      <div class="note">Forgot to tap the button? It happens.</div>
       <div class="field">
-        <label>Start</label>
+        <label>Start time</label>
         <input id="startInput" type="datetime-local" />
       </div>
       <div class="field">
-        <label>End</label>
+        <label>End time</label>
         <input id="endInput" type="datetime-local" />
       </div>
-      <div class="hint" id="manualDuration">Duration: zero hours</div>
+      <div class="hint" id="manualDuration">Duration: 0 hours</div>
       <div class="modalActions">
-        <button id="btnSaveManual" class="primary">Save</button>
         <button id="btnCancelManual" class="ghost">Cancel</button>
+        <button id="btnSaveManual" class="primary">Save Entry</button>
       </div>
-      <div class="fineprint" id="overlapWarning" hidden>This overlaps another entry. You can still save it.</div>
+      <div class="fineprint" id="overlapWarning" hidden>This overlaps another entry.</div>
     </section>
 
     <!-- GOAL -->
@@ -91,33 +603,33 @@
       </div>
       <div class="progressWrap">
         <div class="progressBar"><div id="progressFill" class="progressFill"></div></div>
-        <div class="progressLabel" id="progressLabel">zero percent</div>
+        <div class="progressLabel" id="progressLabel">0%</div>
       </div>
       <div class="triplet">
-        <div><div class="mLabel">Completed</div><div class="mValue" id="goalDone">zero hours</div></div>
-        <div><div class="mLabel">Reference</div><div class="mValue" id="goalTotal">five thousand hours</div></div>
-        <div><div class="mLabel">Remaining</div><div class="mValue" id="goalRemain">five thousand hours</div></div>
+        <div><div class="mLabel">Completed</div><div class="mValue" id="goalDone">0h</div></div>
+        <div><div class="mLabel">Reference</div><div class="mValue" id="goalTotal">0h</div></div>
+        <div><div class="mLabel">Remaining</div><div class="mValue" id="goalRemain">0h</div></div>
       </div>
       <div class="modalActions">
-        <button id="btnSaveGoal" class="primary">Save</button>
         <button id="btnCancelGoal" class="ghost">Cancel</button>
+        <button id="btnSaveGoal" class="primary">Save Goal</button>
       </div>
     </section>
 
     <!-- TIPS -->
     <section id="modalTips" class="modal" hidden>
       <div class="modalTop">
-        <div class="modalTitle">Want to quit?</div>
+        <div class="modalTitle">Gentle suggestions</div>
         <button id="btnCloseTips" class="x">✕</button>
       </div>
-      <div class="note">These are gentle, educational suggestions. Not medical advice.</div>
+      <div class="note">Ideas to help you through a wave.</div>
       <ol id="tipsList" class="tips"></ol>
     </section>
 
     <!-- STATS -->
     <section id="modalStats" class="modal" hidden>
       <div class="modalTop">
-        <div class="modalTitle">Stats</div>
+        <div class="modalTitle">History</div>
         <button id="btnCloseStats" class="x">✕</button>
       </div>
       <div class="seg">
@@ -126,10 +638,10 @@
         <button class="segBtn" data-range="year">Year</button>
       </div>
       <div class="grid">
-        <div class="metric"><div class="mLabel">Total fasting</div><div class="mValue" id="rangeTotal">zero hours</div></div>
-        <div class="metric"><div class="mLabel">Average fast</div><div class="mValue" id="rangeAvg">zero hours</div></div>
-        <div class="metric"><div class="mLabel">Longest fast</div><div class="mValue" id="rangeMax">zero hours</div></div>
-        <div class="metric"><div class="mLabel">Fasts logged</div><div class="mValue" id="rangeCount">zero</div></div>
+        <div class="metric"><div class="mLabel">Total time</div><div class="mValue" id="rangeTotal">0h</div></div>
+        <div class="metric"><div class="mLabel">Average</div><div class="mValue" id="rangeAvg">0h</div></div>
+        <div class="metric"><div class="mLabel">Longest</div><div class="mValue" id="rangeMax">0h</div></div>
+        <div class="metric"><div class="mLabel">Entries</div><div class="mValue" id="rangeCount">0</div></div>
       </div>
       <div class="log" id="logList"></div>
     </section>
@@ -137,60 +649,347 @@
     <!-- BACKUP -->
     <section id="modalBackup" class="modal" hidden>
       <div class="modalTop">
-        <div class="modalTitle">Backup</div>
+        <div class="modalTitle">Backup data</div>
         <button id="btnCloseBackup" class="x">✕</button>
       </div>
-      <div class="row">
-        <button id="btnExport" class="ghost">Export</button>
-        <label class="ghost file">Import<input id="fileImport" type="file" accept="application/json" /></label>
+      <div class="stack">
+        <button id="btnExport" class="rowBtn">Export to file</button>
+        <div class="field">
+            <label>Import from file</label>
+            <input id="fileImport" type="file" accept="application/json" style="padding:10px; background:transparent; border:1px dashed var(--ink-muted);" />
+        </div>
       </div>
-      <div class="note">This app keeps time, not score. Miss a day and start again.</div>
+      <div class="note" style="margin-top:16px">Your data stays on this device.</div>
     </section>
 
-    <!-- DISCLAIMER -->
-    <section id="modalInfo" class="modal" hidden>
-      <div class="modalTop">
-        <div class="modalTitle">Medical disclaimer</div>
-        <button id="btnCloseInfo" class="x">✕</button>
-      </div>
-      <div class="detailsBody">
-        This app provides general, educational information about fasting physiology and habits. It is not intended as medical advice.
-        If you are pregnant, breastfeeding, have diabetes, a history of eating disorders, gout, take medications, or have a medical condition,
-        consult a qualified professional before fasting—especially for extended periods.
-      </div>
-    </section>
-
-    
     <!-- THEME -->
     <section id="modalTheme" class="modal" hidden>
       <div class="modalTop">
         <div class="modalTitle">Theme</div>
         <button id="btnCloseTheme" class="x">✕</button>
       </div>
-      <div class="note">Choose a palette. You can switch anytime.</div>
       <div class="themeGrid" id="themeGrid">
         <button class="themeChip" data-theme="evergreen">
           <span class="swatch swEvergreen"></span>
-          Evergreen
+          Onyx
         </button>
         <button class="themeChip" data-theme="ocean">
           <span class="swatch swOcean"></span>
-          Ocean
+          Slate
         </button>
         <button class="themeChip" data-theme="indigo">
           <span class="swatch swIndigo"></span>
-          Indigo
+          Midnight
         </button>
         <button class="themeChip" data-theme="amber">
           <span class="swatch swAmber"></span>
-          Amber
+          Clay
         </button>
       </div>
     </section>
 
+    <!-- INFO -->
+    <section id="modalInfo" class="modal" hidden>
+      <div class="modalTop">
+        <div class="modalTitle">Disclaimer</div>
+        <button id="btnCloseInfo" class="x">✕</button>
+      </div>
+      <div class="note">
+        This app provides general information about fasting habits. It is not medical advice.
+        If you are pregnant, have diabetes, eating disorders, or other conditions, please consult a professional.
+      </div>
+    </section>
 
     <div id="toast" class="toast" hidden></div>
-    <script src="/app.js"></script>
+
   </main>
+
+  <!-- APP LOGIC -->
+  <script>
+    const KEY_ACTIVE='fb_active';const KEY_SESS='fb_sessions';const KEY_GOAL='fb_goal';const KEY_THEME='fb_theme';
+    const el=id=>document.getElementById(id);
+    const stateLabel=el('stateLabel'),timerLabel=el('timerLabel'),weekTotal=el('weekTotal'),whats=el('whatsHappening');
+    const btnMain=el('btnMain'),toast=el('toast');
+    const modalBackdrop=el('modalBackdrop'),modalMore=el('modalMore'),modalAdd=el('modalAdd'),modalGoal=el('modalGoal'),
+    modalTips=el('modalTips'),modalStats=el('modalStats'),modalBackup=el('modalBackup'),modalInfo=el('modalInfo'),modalTheme=el('modalTheme');
+    const startInput=el('startInput'),endInput=el('endInput'),manualDuration=el('manualDuration'),overlapWarning=el('overlapWarning');
+    const goalHoursInput=el('goalHoursInput'),progressFill=el('progressFill'),progressLabel=el('progressLabel'),
+    goalDone=el('goalDone'),goalTotal=el('goalTotal'),goalRemain=el('goalRemain');
+    const rangeTotal=el('rangeTotal'),rangeAvg=el('rangeAvg'),rangeMax=el('rangeMax'),rangeCount=el('rangeCount'),logList=el('logList');
+
+    // Updated calm, educational tips
+    const tips=[
+      "Drink water and pause for ten minutes.", "Add a pinch of salt to water if appropriate.",
+      "Warm tea can take the edge off hunger.", "Black coffee can help some people.",
+      "Remind yourself hunger often comes in waves.", "Light movement can reduce restlessness.",
+      "Brush your teeth; it can reset cravings.", "Focus on a task for fifteen minutes.",
+      "Electrolytes may help during longer fasts.", "Sleep often makes fasting easier.",
+      "Stress can amplify hunger signals.", "Deep breathing can calm the nervous system.",
+      "A short walk can help pass a hunger wave.", "Cold or warm showers can change sensations.",
+      "Carbonated water can feel more filling.", "Separate habit-hunger from need-hunger.",
+      "Check in: are you thirsty or tired?", "Keep occupied during usual meal times.",
+      "Remember why you chose to fast today.", "Short fasts still count.",
+      "You can end now and start again later.", "Consistency matters more than perfection.",
+      "Listen to your body's signals.", "Fat adaptation can take patience.",
+      "Hunger hormones fluctuate naturally.", "Routine cues can trigger appetite.",
+      "Salt, potassium, and magnesium matter.", "Extended fasts are often supervised.",
+      "Non-exercise activity can help.", "A warm mug in your hands can be grounding.",
+      "Mindful breathing for one minute.", "Read or listen to something engaging.",
+      "Dim lighting can reduce food cues.", "Change rooms to break association.",
+      "Hydration first, decision second.", "Write down how you feel, briefly.",
+      "Set a small check-in time.", "Delay does not equal denial.",
+      "Ending a fast is not failure.", "Restarting is always allowed.",
+      "Your body is adaptable.", "Time is cumulative.",
+      "Today does not define the week.", "Weeks do not define the year.",
+      "Long-term habits beat single days.", "Neutral observation reduces stress.",
+      "Calm decisions tend to be better.", "Choose the gentlest next step."
+    ];
+
+    function show(m){
+        toast.textContent=m;
+        toast.hidden=false;
+        void toast.offsetWidth; // Trigger reflow
+        setTimeout(()=>toast.hidden=true, 2200);
+    }
+
+    function openModal(m){
+        modalBackdrop.hidden=false;
+        m.hidden=false;
+    }
+    
+    function closeAll(){
+        modalBackdrop.hidden=true;
+        const modals = [modalMore,modalAdd,modalGoal,modalTips,modalStats,modalBackup,modalTheme,modalInfo];
+        modals.forEach(x=>x.hidden=true);
+    }
+
+    function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}}
+    function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+
+    function fmt(ms){
+      const m=Math.max(0,Math.floor(ms/60000));
+      const h=Math.floor(m/60),mi=m%60;
+      if(!h&&!mi) return 'zero hours';
+      if(!mi) return h+' hours';
+      if(!h) return mi+' minutes';
+      return h+' hours, '+mi+' minutes';
+    }
+
+    // Stopwatch: dd hh mm (No seconds)
+    function fmtStopwatch(ms){
+      const totalMinutes=Math.max(0,Math.floor(ms/60000));
+      const days=Math.floor(totalMinutes/1440);
+      const remMin=totalMinutes%1440;
+      const hours=Math.floor(remMin/60);
+      const minutes=remMin%60;
+      const hh=String(hours).padStart(2,'0');
+      const mm=String(minutes).padStart(2,'0');
+      if(days>0){
+        const dd=String(days).padStart(2,'0');
+        return dd+'d '+hh+'h '+mm+'m';
+      }
+      return hh+'h '+mm+'m';
+    }
+
+    function render(){
+     const theme=load(KEY_THEME,'evergreen');
+     if(document.documentElement.dataset.theme!==theme){
+      document.documentElement.dataset.theme=theme;
+      const chips=document.querySelectorAll('.themeChip');
+      chips.forEach(c=>c.classList.toggle('isOn', c.dataset.theme===theme));
+     }
+
+     const active=load(KEY_ACTIVE,null); const sess=load(KEY_SESS,[]);
+     stateLabel.textContent=active?'Fasting':'Not fasting';
+     
+     // Visual tweaks for button & labels
+     if(active) {
+         btnMain.textContent='End fast';
+         stateLabel.style.color='var(--accent)';
+         stateLabel.parentElement.style.borderColor='var(--accent)';
+         timerLabel.style.fontWeight = '400';
+     } else {
+         btnMain.textContent='Start fast';
+         stateLabel.style.color='var(--ink-muted)';
+         stateLabel.parentElement.style.borderColor='var(--surface-border)';
+         timerLabel.style.fontWeight = '300'; 
+     }
+     
+     timerLabel.textContent=active?fmtStopwatch(Date.now()-active):'00h 00m';
+     
+     const weekStart=(()=>{const d=new Date();const day=d.getDay()||7;d.setDate(d.getDate()-day+1);d.setHours(0,0,0,0);return d.getTime()})();
+     const weekMs=sess.filter(s=>s.e>=weekStart).reduce((a,s)=>a+s.d,0);
+     weekTotal.textContent=fmt(weekMs);
+     
+     // Updated Neutral Tone Text
+     if(active) {
+         const hrs = (Date.now()-active)/3600000;
+         if(hrs < 12) whats.textContent='Body is digesting and recovering.';
+         else if(hrs < 18) whats.textContent='Blood sugar levels are stabilizing.';
+         else if(hrs < 24) whats.textContent='Fat is becoming a primary fuel source.';
+         else whats.textContent='Longer fasts are commonly done with medical guidance.';
+     } else {
+         whats.textContent='Start whenever it fits your day.';
+     }
+     
+     const goal=load(KEY_GOAL,5000); 
+     const doneH=Math.floor(sess.reduce((a,s)=>a+s.d,0)/3600000);
+     goalDone.textContent=doneH+'h'; goalTotal.textContent=goal+'h'; goalRemain.textContent=Math.max(0,goal-doneH)+'h';
+     const pct=goal?Math.min(100,Math.round(doneH/goal*100)):0; 
+     progressFill.style.width=pct+'%'; progressLabel.textContent=pct+'%';
+     
+     // Stats
+     rangeTotal.textContent=fmt(sess.reduce((a,s)=>a+s.d,0));
+     rangeCount.textContent=sess.length;
+     // Recent logs (Shortened date format)
+     logList.innerHTML = sess.slice(0,20).map(s=> `<div>${new Date(s.s).toLocaleDateString(undefined, {month:'short', day:'numeric'})} <span>${fmt(s.d)}</span></div>`).join('');
+    }
+
+    btnMain.onclick=()=>{
+        const active=load(KEY_ACTIVE,null);
+        if(!active){
+            save(KEY_ACTIVE,Date.now());
+            show('Started.');
+            render();
+            return;
+        }
+        const ms=Date.now()-active; 
+        if(!confirm('End fast?
+
+Duration: '+fmtStopwatch(ms)+'
+You can always start again.')) return;
+        
+        const sess=load(KEY_SESS,[]); 
+        sess.unshift({s:active,e:Date.now(),d:ms}); 
+        save(KEY_SESS,sess); 
+        save(KEY_ACTIVE,null);
+        show('Logged. Start again whenever you’re ready.'); 
+        render();
+    };
+
+    el('btnMore').onclick=()=>openModal(modalMore);
+    el('btnCloseMore').onclick=closeAll;
+    
+    el('btnAddMissed').onclick=()=>{
+        openModal(modalAdd); 
+        const now=Date.now(); 
+        startInput.value=new Date(now-16*3600000).toISOString().slice(0,16); 
+        endInput.value=new Date(now).toISOString().slice(0,16);
+    }
+    el('btnCloseAdd').onclick=closeAll; 
+    el('btnCancelManual').onclick=closeAll;
+    
+    el('btnSaveManual').onclick=()=>{
+        const s=new Date(startInput.value).getTime(),e=new Date(endInput.value).getTime();
+        if(!(e>s))return alert('End needs to be after start.'); 
+        const sess=load(KEY_SESS,[]); 
+        sess.unshift({s,e,d:e-s}); 
+        save(KEY_SESS,sess); 
+        closeAll(); 
+        show('Logged.'); 
+        render();
+    }
+    
+    el('btnGoal').onclick=()=>openModal(modalGoal); 
+    el('btnCloseGoal').onclick=closeAll; 
+    el('btnCancelGoal').onclick=closeAll;
+    
+    el('btnSaveGoal').onclick=()=>{
+        save(KEY_GOAL,Number(goalHoursInput.value||5000)); 
+        closeAll(); 
+        show('Updated.'); 
+        render();
+    }
+    
+    el('btnTips').onclick=()=>{
+        const list=el('tipsList'); 
+        list.innerHTML=''; 
+        tips.forEach(t=>{const li=document.createElement('li'); li.textContent=t; list.appendChild(li)}); 
+        openModal(modalTips)
+    }
+    el('btnCloseTips').onclick=closeAll;
+    
+    el('btnStats').onclick=()=>openModal(modalStats); 
+    el('btnCloseStats').onclick=closeAll;
+    
+    el('btnBackup').onclick=()=>openModal(modalBackup); 
+    el('btnCloseBackup').onclick=closeAll;
+    
+    el('btnTheme').onclick=()=>{openModal(modalTheme)};
+    el('btnCloseTheme').onclick=closeAll;
+    
+    el('btnDisclaimer').onclick=()=>openModal(modalInfo); 
+    el('btnCloseInfo').onclick=closeAll;
+
+    el('btnExport').onclick=()=>{
+        const data = {
+            sessions: load(KEY_SESS, []),
+            goal: load(KEY_GOAL, 5000),
+            theme: load(KEY_THEME, 'evergreen')
+        };
+        const blob = new Blob([JSON.stringify(data,null,2)], {type : 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'fastbutton_backup.json';
+        a.click();
+    };
+    
+    el('fileImport').onchange=(e)=>{
+        const f = e.target.files[0];
+        if(!f) return;
+        const r = new FileReader();
+        r.onload=(ev)=>{
+            try {
+                const d = JSON.parse(ev.target.result);
+                if(d.sessions) save(KEY_SESS, d.sessions);
+                if(d.goal) save(KEY_GOAL, d.goal);
+                if(d.theme) save(KEY_THEME, d.theme);
+                show('Data imported.');
+                render();
+                closeAll();
+            } catch(err) {
+                alert('Invalid file format.');
+            }
+        };
+        r.readAsText(f);
+    };
+
+    function applyTheme(name){
+      const t = name || 'evergreen';
+      document.documentElement.dataset.theme = t;
+      save(KEY_THEME, t);
+      const chips = document.querySelectorAll('.themeChip');
+      chips.forEach(c=>c.classList.toggle('isOn', c.dataset.theme===t));
+    }
+
+    document.addEventListener('click', (e)=>{
+      const btn = e.target && e.target.closest && e.target.closest('.themeChip');
+      if(!btn) return;
+      applyTheme(btn.dataset.theme);
+      show('Theme updated.');
+      setTimeout(closeAll, 300); 
+    });
+
+    modalBackdrop.onclick=closeAll;
+
+    render(); 
+    // Performance: Update every 60 seconds to save battery/resources
+    // (Since we don't show seconds, we don't need 1000ms polling)
+    setInterval(render, 60000);
+    
+    // Also update on visibility change to catch up when app is reopened
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) render();
+    });
+    
+    applyTheme(load(KEY_THEME, 'evergreen'));
+
+  </script>
+  <script>
+    if('serviceWorker' in navigator){
+      window.addEventListener('load', ()=> navigator.serviceWorker.register('/sw.js'));
+    }
+  </script>
 </body>
 </html>

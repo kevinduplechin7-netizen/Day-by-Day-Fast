@@ -3,8 +3,8 @@
   "short_name": "FastButton",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f6f3ee",
-  "theme_color": "#0f2a24",
+  "background_color": "#FAFAF9",
+  "theme_color": "#FAFAF9",
   "icons": [
     {
       "src": "/icon-192.png",
