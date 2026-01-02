@@ -83,11 +83,10 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: linear-gradient(180deg, var(--bgA), var(--bgB));
       color: var(--ink);
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      overflow-y: auto;
+      display: block;
       justify-content: center;
     }
 
@@ -854,10 +853,7 @@
             return;
         }
         const ms=Date.now()-active; 
-        if(!confirm('End fast?
-
-Duration: '+fmtStopwatch(ms)+'
-You can always start again.')) return;
+        if(!confirm('End fast?\n\nDuration: '+fmtStopwatch(ms)+'\nYou can always start again.')) return;
         
         const sess=load(KEY_SESS,[]); 
         sess.unshift({s:active,e:Date.now(),d:ms}); 
